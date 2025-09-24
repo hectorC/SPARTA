@@ -110,6 +110,32 @@ PluginEditor::PluginEditor (PluginProcessor* ownerFilter)
 
     s_roll->setBounds (328, 137, 96, 112);
 
+	s_gainLeft.reset(new juce::Slider("new slider"));
+	addAndMakeVisible(s_gainLeft.get());
+	s_gainLeft->setRange(-20.0, 20.0, 0.01);
+	s_gainLeft->setSliderStyle(juce::Slider::LinearHorizontal);
+	s_gainLeft->setTextBoxStyle(juce::Slider::TextBoxAbove, false, 80, 20);
+    s_gainLeft->setColour(juce::Slider::backgroundColourId, juce::Colour(0xff5c5d5e));
+    s_gainLeft->setColour(juce::Slider::trackColourId, juce::Colour(0xff315b6d));
+    s_gainLeft->setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+    s_gainLeft->setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0x00ffffff));
+    s_gainLeft->addListener(this);
+
+	s_gainLeft->setBounds(135, 260, 256, 38);
+
+	s_gainRight.reset(new juce::Slider("new slider"));
+    addAndMakeVisible(s_gainRight.get());
+    s_gainRight->setRange(-20.0, 20.0, 0.01);
+    s_gainRight->setSliderStyle(juce::Slider::LinearHorizontal);
+    s_gainRight->setTextBoxStyle(juce::Slider::TextBoxAbove, false, 80, 20);
+    s_gainRight->setColour(juce::Slider::backgroundColourId, juce::Colour(0xff5c5d5e));
+    s_gainRight->setColour(juce::Slider::trackColourId, juce::Colour(0xff315b6d));
+    s_gainRight->setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+    s_gainRight->setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0x00ffffff));
+    s_gainRight->addListener(this);
+
+    s_gainRight->setBounds(385, 260, 256, 38);
+
     te_oscport.reset (new juce::TextEditor ("new text editor"));
     addAndMakeVisible (te_oscport.get());
     te_oscport->setMultiLine (false);
@@ -195,6 +221,13 @@ PluginEditor::PluginEditor (PluginProcessor* ownerFilter)
 
     t_flipYaw->setBounds (128, 209, 23, 24);
 
+    //t_feedSwapType.reset(new juce::ToggleButton("Reverse Swap"));
+    //addAndMakeVisible(t_feedSwapType.get());
+    //t_feedSwapType->setButtonText(juce::String());
+    //t_feedSwapType->addListener(this);
+
+    //t_feedSwapType->setBounds(178, 225, 23, 24);
+
     TBcompEQ.reset (new juce::ToggleButton ("new toggle button"));
     addAndMakeVisible (TBcompEQ.get());
     TBcompEQ->setButtonText (juce::String());
@@ -250,11 +283,12 @@ PluginEditor::PluginEditor (PluginProcessor* ownerFilter)
 
     CBhrirPreProc->setBounds (520, 113, 113, 18);
 
-    setSize (656, 262);
+    setSize (656, 367); // original 656, 262
 
     /* handles */
 	hVst = ownerFilter;
     hAmbi = hVst->getFXHandle();
+    hAmbi2 = hVst->getFXHandle2();
 
     /* init OpenGL */
 #ifndef PLUGIN_EDITOR_DISABLE_OPENGL
@@ -315,7 +349,10 @@ PluginEditor::PluginEditor (PluginProcessor* ownerFilter)
     s_yaw->setValue(ambi_bin_getYaw(hAmbi), dontSendNotification);
     s_pitch->setValue(ambi_bin_getPitch(hAmbi), dontSendNotification);
     s_roll->setValue(ambi_bin_getRoll(hAmbi), dontSendNotification);
+	s_gainLeft->setValue(hVst->gainCompLeft, dontSendNotification);
+	s_gainRight->setValue(hVst->gainCompRight, dontSendNotification);
     t_flipYaw->setToggleState((bool)ambi_bin_getFlipYaw(hAmbi), dontSendNotification);
+	//t_feedSwapType->setToggleState((bool)hVst->swapType, dontSendNotification);
     t_flipPitch->setToggleState((bool)ambi_bin_getFlipPitch(hAmbi), dontSendNotification);
     t_flipRoll->setToggleState((bool)ambi_bin_getFlipRoll(hAmbi), dontSendNotification);
     te_oscport->setText(String(hVst->getOscPortID()), dontSendNotification);
@@ -338,7 +375,10 @@ PluginEditor::PluginEditor (PluginProcessor* ownerFilter)
     s_yaw->setTooltip("Sets the 'Yaw' rotation angle (in degrees).");
     s_pitch->setTooltip("Sets the 'Pitch' rotation angle (in degrees).");
     s_roll->setTooltip("Sets the 'Roll' rotation angle (in degrees).");
+	s_gainLeft->setTooltip("Sets the gain offset of the first ambisonic feed in dB. This is useful for compensating for the gain differences between the two feeds.");
+    s_gainRight->setTooltip("Sets the gain offset of the second ambisonic feed in dB. This is useful for compensating for the gain differences between the two feeds.");
     t_flipYaw->setTooltip("Flips the sign (+/-) of the 'Yaw' rotation angle.");
+	//t_feedSwapType->setTooltip("Sets how the channels of the binaural decode of each feed will output in the back ±90 area. Disabled: right channel outputs the right channel of the first feed, left channel outputs the left channel of the second feed. Enabled: right channel outputs the left channel of the first feed, left channel outputs the right channel of the second feed");
     t_flipPitch->setTooltip("Flips the sign (+/-) of the 'Pitch' rotation angle.");
     t_flipRoll->setTooltip("Flips the sign (+/-) of the 'Roll' rotation angle.");
     te_oscport->setTooltip("The OSC port at which to receive the rotation angles. To facilitate head-tracking, send the rotation angles (in degrees) to this port ID as a 3-element vector 'ypr[3]', following the yaw-pitch-roll convention.");
@@ -373,6 +413,8 @@ PluginEditor::~PluginEditor()
     s_yaw = nullptr;
     s_pitch = nullptr;
     s_roll = nullptr;
+	s_gainLeft = nullptr;
+	s_gainRight = nullptr;
     te_oscport = nullptr;
     label_N_dirs = nullptr;
     label_HRIR_len = nullptr;
@@ -381,6 +423,9 @@ PluginEditor::~PluginEditor()
     t_flipPitch = nullptr;
     t_flipRoll = nullptr;
     t_flipYaw = nullptr;
+	s_gainLeft = nullptr;
+    s_gainRight = nullptr;
+	//t_feedSwapType = nullptr;
     TBcompEQ = nullptr;
     TBrpyFlag = nullptr;
     TBenableRot = nullptr;
@@ -397,7 +442,7 @@ void PluginEditor::paint (juce::Graphics& g)
     g.fillAll (juce::Colours::white);
 
     {
-        int x = 0, y = 146, width = 656, height = 116;
+        int x = 0, y = 146, width = 656, height = 191; // 116;
         juce::Colour fillColour1 = juce::Colour (0xff19313f), fillColour2 = juce::Colour (0xff041518);
         g.setGradientFill (juce::ColourGradient (fillColour1,
                                              8.0f - 0.0f + x,
@@ -411,7 +456,7 @@ void PluginEditor::paint (juce::Graphics& g)
 
     {
         int x = 0, y = 30, width = 656, height = 116;
-        juce::Colour fillColour1 = juce::Colour (0xff19313f), fillColour2 = juce::Colour (0xff041518);
+        juce::Colour fillColour1 = juce::Colour(0xff19313f), fillColour2 = juce::Colour (0xff041518);
         g.setGradientFill (juce::ColourGradient (fillColour1,
                                              8.0f - 0.0f + x,
                                              32.0f - 30.0f + y,
@@ -425,7 +470,7 @@ void PluginEditor::paint (juce::Graphics& g)
     {
         float x = 1.0f, y = 2.0f, width = 654.0f, height = 31.0f;
         juce::Colour fillColour1 = juce::Colour (0xff041518), fillColour2 = juce::Colour (0xff19313f);
-        juce::Colour strokeColour = juce::Colour (0xffb9b9b9);
+        juce::Colour strokeColour = juce::Colour(0xffb9b9b9);
         g.setGradientFill (juce::ColourGradient (fillColour1,
                                              0.0f - 1.0f + x,
                                              32.0f - 2.0f + y,
@@ -440,7 +485,7 @@ void PluginEditor::paint (juce::Graphics& g)
 
     {
         int x = 12, y = 58, width = 237, height = 82;
-        juce::Colour fillColour = juce::Colour (0x10f4f4f4);
+        juce::Colour fillColour = juce::Colour(0x10f4f4f4);
         juce::Colour strokeColour = juce::Colour (0x67a0a0a0);
         g.setColour (fillColour);
         g.fillRect (x, y, width, height);
@@ -460,6 +505,7 @@ void PluginEditor::paint (juce::Graphics& g)
 
     }
 
+    // Rotation box
     {
         int x = 12, y = 139, width = 424, height = 112;
         juce::Colour fillColour = juce::Colour (0x10f4f4f4);
@@ -503,6 +549,50 @@ void PluginEditor::paint (juce::Graphics& g)
         g.drawRect (x, y, width, height, 1);
 
     }
+
+    // Gain box
+    {
+        int x = 12, y = 251, width = 629, height = 74;
+        juce::Colour fillColour = juce::Colour(0x10f4f4f4);
+		juce::Colour strokeColour = juce::Colour(0x67a0a0a0);
+        g.setColour(fillColour);
+        g.fillRect(x, y, width, height);
+        g.setColour(strokeColour);
+        g.drawRect(x, y, width, height, 1);
+
+    }
+
+    {
+        int x = 19, y = 270, width = 121, height = 40;
+        juce::String text(TRANS("Input Gain Comp.\n(dB)"));
+        juce::Colour fillColour = juce::Colours::white;
+        g.setColour(fillColour);
+        g.setFont(juce::FontOptions(14.50f, juce::Font::plain).withStyle("Bold"));
+        g.drawMultiLineText(text, x, y, width, juce::Justification::centred, false);
+        //g.drawText(text, x, y, width, height,
+        //    juce::Justification::topLeft, false);
+    }
+
+    {
+        int x = 203, y = 298, width = 121, height = 23;
+        juce::String text(TRANS("First Amb. Feed"));
+        juce::Colour fillColour = juce::Colours::white;
+        g.setColour(fillColour);
+        g.setFont(juce::FontOptions(11.00f, juce::Font::plain).withStyle("Bold"));
+        g.drawText(text, x, y, width, height,
+            juce::Justification::centred, true);
+    }
+
+    {
+        int x = 453, y = 298, width = 121, height = 23;
+        juce::String text(TRANS("Second Amb. Feed"));
+        juce::Colour fillColour = juce::Colours::white;
+        g.setColour(fillColour);
+        g.setFont(juce::FontOptions(11.00f, juce::Font::plain).withStyle("Bold"));
+        g.drawText(text, x, y, width, height,
+            juce::Justification::centred, true);
+    }
+
 
     {
         int x = 164, y = 32, width = 149, height = 30;
@@ -664,6 +754,15 @@ void PluginEditor::paint (juce::Graphics& g)
                     juce::Justification::centred, true);
     }
 
+   /* int x = 158, y = 209, width = 63, height = 30;
+    juce::String text(TRANS("Back Swap"));
+    juce::Colour fillColour = juce::Colours::white;
+    g.setColour(fillColour);
+    g.setFont(juce::FontOptions(11.00f, juce::Font::plain).withStyle("Regular"));
+    g.drawText(text, x, y, width, height,
+        juce::Justification::centred, true);*/
+
+
     {
         int x = 445, y = 139, width = 196, height = 112;
         juce::Colour fillColour = juce::Colour (0x10f4f4f4);
@@ -757,7 +856,7 @@ void PluginEditor::paint (juce::Graphics& g)
 
     {
         int x = 92, y = 1, width = 184, height = 32;
-        juce::String text (TRANS ("AmbiBIN"));
+        juce::String text (TRANS ("AmbiBIN Bi-Lateral"));
         juce::Colour fillColour = juce::Colour (0xffdf8400);
         g.setColour (fillColour);
         g.setFont (juce::FontOptions (18.00f, juce::Font::plain).withStyle("Bold"));
@@ -795,6 +894,7 @@ void PluginEditor::paint (juce::Graphics& g)
                     juce::Justification::centredLeft, true);
     }
 
+    // Frame line top
     {
         int x = 0, y = 0, width = 656, height = 2;
         juce::Colour strokeColour = juce::Colour (0xffb9b9b9);
@@ -803,24 +903,27 @@ void PluginEditor::paint (juce::Graphics& g)
 
     }
 
+    // Frame line right
     {
-        int x = 654, y = 0, width = 2, height = 262;
+        int x = 654, y = 0, width = 2, height = 337;
         juce::Colour strokeColour = juce::Colour (0xffb9b9b9);
         g.setColour (strokeColour);
         g.drawRect (x, y, width, height, 2);
 
     }
 
+	// Frame line left
     {
-        int x = 0, y = 0, width = 2, height = 262;
+        int x = 0, y = 0, width = 2, height = 337;
         juce::Colour strokeColour = juce::Colour (0xffb9b9b9);
         g.setColour (strokeColour);
         g.drawRect (x, y, width, height, 2);
 
     }
 
+    // Frame line bottom
     {
-        int x = 0, y = 260, width = 656, height = 2;
+        int x = 0, y = 335, width = 656, height = 2;
         juce::Colour strokeColour = juce::Colour (0xffb9b9b9);
         g.setColour (strokeColour);
         g.drawRect (x, y, width, height, 2);
@@ -850,7 +953,7 @@ void PluginEditor::paint (juce::Graphics& g)
 	g.setColour(Colours::white);
 	g.setFont(juce::FontOptions (11.00f, juce::Font::plain));
 	g.drawText(TRANS("Ver ") + JucePlugin_VersionString + BUILD_VER_SUFFIX + TRANS(", Build Date ") + __DATE__ + TRANS(" "),
-		185, 16, 530, 11,
+		265, 16, 530, 11,
 		Justification::centredLeft, true);
 
     /* display warning message */
@@ -898,28 +1001,37 @@ void PluginEditor::resized()
 {
 }
 
-void PluginEditor::buttonClicked (juce::Button* buttonThatWasClicked)
+void PluginEditor::buttonClicked(juce::Button* buttonThatWasClicked)
 {
     if (buttonThatWasClicked == TBuseDefaultHRIRs.get())
     {
         ambi_bin_setUseDefaultHRIRsflag(hAmbi, (int)TBuseDefaultHRIRs->getToggleState());
+        ambi_bin_setUseDefaultHRIRsflag(hAmbi2, (int)TBuseDefaultHRIRs->getToggleState());
     }
     else if (buttonThatWasClicked == TBmaxRE.get())
     {
         ambi_bin_setEnableMaxRE(hAmbi, (int)TBmaxRE->getToggleState());
+        ambi_bin_setEnableMaxRE(hAmbi2, (int)TBmaxRE->getToggleState());
     }
     else if (buttonThatWasClicked == t_flipPitch.get())
     {
         ambi_bin_setFlipPitch(hAmbi, (int)t_flipPitch->getToggleState());
+        ambi_bin_setFlipPitch(hAmbi2, (int)t_flipPitch->getToggleState());
     }
     else if (buttonThatWasClicked == t_flipRoll.get())
     {
         ambi_bin_setFlipRoll(hAmbi, (int)t_flipRoll->getToggleState());
+        ambi_bin_setFlipRoll(hAmbi2, (int)t_flipRoll->getToggleState());
     }
     else if (buttonThatWasClicked == t_flipYaw.get())
     {
         ambi_bin_setFlipYaw(hAmbi, (int)t_flipYaw->getToggleState());
+        ambi_bin_setFlipYaw(hAmbi2, (int)t_flipYaw->getToggleState());
     }
+  //  else if (buttonThatWasClicked == t_feedSwapType.get())
+  //  {
+		//hVst->swapType = t_feedSwapType->getToggleState() ? 1.0f : 0.0f;
+  //  }
     else if (buttonThatWasClicked == TBcompEQ.get())
     {
         // TODO: is this supposed to link to something?
@@ -927,59 +1039,79 @@ void PluginEditor::buttonClicked (juce::Button* buttonThatWasClicked)
     else if (buttonThatWasClicked == TBrpyFlag.get())
     {
         ambi_bin_setRPYflag(hAmbi, (int)TBrpyFlag->getToggleState());
+        ambi_bin_setRPYflag(hAmbi2, (int)TBrpyFlag->getToggleState());
     }
     else if (buttonThatWasClicked == TBenableRot.get())
     {
         ambi_bin_setEnableRotation(hAmbi, (int)TBenableRot->getToggleState());
+        ambi_bin_setEnableRotation(hAmbi2, (int)TBenableRot->getToggleState());
     }
     else if (buttonThatWasClicked == TBdiffMatching.get())
     {
         ambi_bin_setEnableDiffuseMatching(hAmbi, (int)TBdiffMatching->getToggleState());
+        ambi_bin_setEnableDiffuseMatching(hAmbi2, (int)TBdiffMatching->getToggleState());
     }
     else if (buttonThatWasClicked == TBtruncationEQ.get())
     {
         ambi_bin_setEnableTruncationEQ(hAmbi, (int)TBtruncationEQ->getToggleState());
+        ambi_bin_setEnableTruncationEQ(hAmbi2, (int)TBtruncationEQ->getToggleState());
     }
 }
 
-void PluginEditor::comboBoxChanged (juce::ComboBox* comboBoxThatHasChanged)
+void PluginEditor::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
 {
     if (comboBoxThatHasChanged == CBorderPreset.get())
     {
         ambi_bin_setInputOrderPreset(hAmbi, (SH_ORDERS)CBorderPreset->getSelectedId());
+        ambi_bin_setInputOrderPreset(hAmbi2, (SH_ORDERS)CBorderPreset->getSelectedId());
     }
     else if (comboBoxThatHasChanged == CBchFormat.get())
     {
         ambi_bin_setChOrder(hAmbi, CBchFormat->getSelectedId());
+        ambi_bin_setChOrder(hAmbi2, CBchFormat->getSelectedId());
     }
     else if (comboBoxThatHasChanged == CBnormScheme.get())
     {
         ambi_bin_setNormType(hAmbi, CBnormScheme->getSelectedId());
+        ambi_bin_setNormType(hAmbi2, CBnormScheme->getSelectedId());
     }
     else if (comboBoxThatHasChanged == CBdecoderMethod.get())
     {
         ambi_bin_setDecodingMethod(hAmbi, (AMBI_BIN_DECODING_METHODS)CBdecoderMethod->getSelectedId());
+        ambi_bin_setDecodingMethod(hAmbi2, (AMBI_BIN_DECODING_METHODS)CBdecoderMethod->getSelectedId());
     }
     else if (comboBoxThatHasChanged == CBhrirPreProc.get())
     {
         ambi_bin_setHRIRsPreProc(hAmbi, (AMBI_BIN_PREPROC)CBhrirPreProc->getSelectedId());
+        ambi_bin_setHRIRsPreProc(hAmbi2, (AMBI_BIN_PREPROC)CBhrirPreProc->getSelectedId());
     }
 }
 
-void PluginEditor::sliderValueChanged (juce::Slider* sliderThatWasMoved)
+void PluginEditor::sliderValueChanged(juce::Slider* sliderThatWasMoved)
 {
     if (sliderThatWasMoved == s_yaw.get())
     {
         ambi_bin_setYaw(hAmbi, (float)s_yaw->getValue());
+        ambi_bin_setYaw(hAmbi2, (float)s_yaw->getValue());
     }
     else if (sliderThatWasMoved == s_pitch.get())
     {
         ambi_bin_setPitch(hAmbi, (float)s_pitch->getValue());
+        ambi_bin_setPitch(hAmbi2, (float)s_pitch->getValue());
     }
     else if (sliderThatWasMoved == s_roll.get())
     {
         ambi_bin_setRoll(hAmbi, (float)s_roll->getValue());
+        ambi_bin_setRoll(hAmbi2, (float)s_roll->getValue());
     }
+    else if (sliderThatWasMoved == s_gainLeft.get())
+    {
+		hVst->gainCompLeft = (float)s_gainLeft->getValue();
+    }
+    else if (sliderThatWasMoved == s_gainRight.get())
+    {
+		hVst->gainCompRight = (float)s_gainRight->getValue();
+	}
 }
 
 void PluginEditor::timerCallback(int timerID)
@@ -1012,6 +1144,8 @@ void PluginEditor::timerCallback(int timerID)
             CBchFormat->setItemEnabled(CH_FUMA, ambi_bin_getInputOrderPreset(hAmbi)==SH_ORDER_FIRST ? true : false);
             CBnormScheme->setItemEnabled(NORM_FUMA, ambi_bin_getInputOrderPreset(hAmbi)==SH_ORDER_FIRST ? true : false);
 
+			// REMOVE - ONLY FOR DEBUGGING
+            //label_N_dirs->setText(String(hVst->debugfloat), dontSendNotification);
 
             /* Progress bar */
             if(ambi_bin_getCodecStatus(hAmbi)==CODEC_STATUS_INITIALISING){
@@ -1025,7 +1159,7 @@ void PluginEditor::timerCallback(int timerID)
                 removeChildComponent(&progressbar);
 
             /* Some parameters shouldn't be editable during initialisation*/
-            if(ambi_bin_getCodecStatus(hAmbi)==CODEC_STATUS_INITIALISING){
+            if(ambi_bin_getCodecStatus(hAmbi)==CODEC_STATUS_INITIALISING || ambi_bin_getCodecStatus(hAmbi2) == CODEC_STATUS_INITIALISING){
                 if(TBuseDefaultHRIRs->isEnabled())
                     TBuseDefaultHRIRs->setEnabled(false);
                 if(CBorderPreset->isEnabled())

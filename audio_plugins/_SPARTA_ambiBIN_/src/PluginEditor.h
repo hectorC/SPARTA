@@ -53,9 +53,13 @@ public:
     void comboBoxChanged (juce::ComboBox* comboBoxThatHasChanged) override;
     void sliderValueChanged (juce::Slider* sliderThatWasMoved) override;
 
+    std::unique_ptr<juce::Slider> s_gainLeft;
+    std::unique_ptr<juce::Slider> s_gainRight;
+
 private:
     PluginProcessor* hVst;
     void* hAmbi;
+	void* hAmbi2;
     void timerCallback(int timerID) override;
 #ifndef PLUGIN_EDITOR_DISABLE_OPENGL
     std::unique_ptr<OpenGLGraphicsContextCustomShader> shader;
@@ -75,6 +79,7 @@ private:
         String directory = fileChooser.getCurrentFile().getFullPathName();
         const char* new_cstring = (const char*)directory.toUTF8();
         ambi_bin_setSofaFilePath(hAmbi, new_cstring);
+        ambi_bin_setSofaFilePath(hAmbi2, new_cstring);
     }
 
     /* warnings */
@@ -107,6 +112,7 @@ private:
     std::unique_ptr<juce::ToggleButton> TBdiffMatching;
     std::unique_ptr<juce::ToggleButton> TBtruncationEQ;
     std::unique_ptr<juce::ComboBox> CBhrirPreProc;
+	//std::unique_ptr<juce::ToggleButton> t_feedSwapType;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
 };

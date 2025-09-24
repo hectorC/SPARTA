@@ -63,9 +63,16 @@ class PluginProcessor  : public AudioProcessor,
 public:
     /* Get functions */
     void* getFXHandle() { return hAmbi; }
+    void* getFXHandle2() { return hAmbi2; }
     int getCurrentBlockSize(){ return nHostBlockSize; }
     int getCurrentNumInputs(){ return nNumInputs; }
     int getCurrentNumOutputs(){  return nNumOutputs; }
+
+    int debugfloat;
+
+    //float swapType = 0.0f;          /* toggle for the feed swap type */
+	float gainCompLeft = 0.0f;  /* gain compensation for left feed */
+	float gainCompRight = 0.0f; /* gain compensation for right feed */
     
     /* VST CanDo */
     pointer_sized_int handleVstManufacturerSpecific (int32 /*index*/, pointer_sized_int /*value*/, void* /*ptr*/, float /*opt*/) override { return 0; }
@@ -90,6 +97,7 @@ public:
     
 private:
     void* hAmbi;             /* ambi_bin handle */
+	void* hAmbi2;            /* ambi_bin handle for second instance */
     int nNumInputs;          /* current number of input channels */
     int nNumOutputs;         /* current number of output channels */
     int nSampleRate;         /* current host sample rate */
@@ -101,12 +109,21 @@ private:
     void timerCallback(int timerID) override {
         switch(timerID){
             case TIMER_PROCESSING_RELATED:
-                /* reinitialise codec if needed */
+                /* reinitialise codecs if needed */
                 if(ambi_bin_getCodecStatus(hAmbi) == CODEC_STATUS_NOT_INITIALISED){
                     try{
                         std::thread threadInit(ambi_bin_initCodec, hAmbi);
                         threadInit.detach();
                     } catch (const std::exception& exception) {
+                        std::cout << "Could not create thread" << exception.what() << std::endl;
+                    }
+                }
+                if (ambi_bin_getCodecStatus(hAmbi2) == CODEC_STATUS_NOT_INITIALISED) {
+                    try {
+                        std::thread threadInit2(ambi_bin_initCodec, hAmbi2);
+                        threadInit2.detach();
+                    }
+                    catch (const std::exception& exception) {
                         std::cout << "Could not create thread" << exception.what() << std::endl;
                     }
                 }

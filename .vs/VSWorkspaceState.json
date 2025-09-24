@@ -1,0 +1,18 @@
+{
+  "OutputFoldersPerTargetSystem": {
+    "Local Machine": [
+      "out\\build\\x64-Debug",
+      "out\\install\\x64-Debug"
+    ]
+  },
+  "ExpandedNodes": [
+    "",
+    "\\audio_plugins",
+    "\\audio_plugins\\_SPARTA_ambiBIN_",
+    "\\SDKs",
+    "\\SDKs\\Spatial_Audio_Framework",
+    "\\SDKs\\Spatial_Audio_Framework\\test\\saf_test_VS"
+  ],
+  "SelectedNode": "\\audio_plugins\\_SPARTA_ambiBIN_",
+  "PreviewInSolutionExplorer": false
+}
