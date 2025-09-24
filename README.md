@@ -1,4 +1,4 @@
-# SPARTA - ambiBin Bilateral
+# SPARTA - ambiBIN Bilateral
 
 This branch is a fork of the official SPARTA repository that produces a modified version of the ambiBIN plugin renamed to ambiBIN_biLat. This has been created for testing and development purposes only and compeltely replaces the ambiBIN plugin with the bilateral variant being researched. A proper clean integration with the original codebase that produces a separate plugin has yet to be implemented. The ambiBIN_biLat plugin intends to decode ambisonic bilateral recordings (two spaced microphones) to binaural while supporting soundfield rotations using an experimental crossfading algorithm. This plugin variant splits the total channel count in the input, using the first half as the left microphone and the second half as the right microphone (e.g., for second order it expects 18 channels containing both microphones). There are two sliders at the bottom for perfroming gain adjustments to each microphone separately. 
 
